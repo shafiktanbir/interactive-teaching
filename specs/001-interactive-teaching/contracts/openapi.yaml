@@ -1,0 +1,205 @@
+openapi: 3.1.0
+info:
+  title: Interactive Teaching API
+  version: 1.0.0
+  description: REST API for lessons and interactive modal content. UTF-8 JSON.
+
+servers:
+  - url: http://localhost:8000
+    description: Local development
+
+paths:
+  /health:
+    get:
+      summary: Liveness probe
+      operationId: healthCheck
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+
+  /lessons/{lesson_id}:
+    get:
+      summary: Get lesson with TOC and TipTap JSON content
+      operationId: getLesson
+      parameters:
+        - name: lesson_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Lesson document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lesson"
+        "404":
+          description: Not found
+
+    put:
+      summary: Replace lesson (MVP dev endpoint)
+      operationId: putLesson
+      parameters:
+        - name: lesson_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LessonInput"
+      responses:
+        "200":
+          description: Updated lesson
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lesson"
+
+  /interactive-nodes/{node_id}:
+    get:
+      summary: Resolve interactive node for modal rendering
+      operationId: getInteractiveNode
+      parameters:
+        - name: node_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Resolved payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InteractiveNodeResolved"
+        "404":
+          description: Unknown node
+        "422":
+          description: URL not allowed or invalid payload
+
+components:
+  schemas:
+    TOCItem:
+      type: object
+      required: [id, label]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        children:
+          type: array
+          items:
+            $ref: "#/components/schemas/TOCItem"
+
+    Lesson:
+      type: object
+      required: [id, title, toc, content]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        toc:
+          type: array
+          items:
+            $ref: "#/components/schemas/TOCItem"
+        content:
+          description: TipTap / ProseMirror JSON document
+          type: object
+          additionalProperties: true
+        updated_at:
+          type: string
+          format: date-time
+
+    LessonInput:
+      type: object
+      required: [title, toc, content]
+      properties:
+        title:
+          type: string
+        toc:
+          type: array
+          items:
+            $ref: "#/components/schemas/TOCItem"
+        content:
+          type: object
+          additionalProperties: true
+
+    InteractiveNodeResolved:
+      oneOf:
+        - $ref: "#/components/schemas/ResolvedText"
+        - $ref: "#/components/schemas/ResolvedImage"
+        - $ref: "#/components/schemas/ResolvedAudio"
+        - $ref: "#/components/schemas/ResolvedVideo"
+      discriminator:
+        propertyName: kind
+        mapping:
+          text: "#/components/schemas/ResolvedText"
+          image: "#/components/schemas/ResolvedImage"
+          audio: "#/components/schemas/ResolvedAudio"
+          video: "#/components/schemas/ResolvedVideo"
+
+    ResolvedText:
+      type: object
+      required: [kind, text]
+      properties:
+        kind:
+          type: string
+          enum: [text]
+        text:
+          type: string
+
+    ResolvedImage:
+      type: object
+      required: [kind, url]
+      properties:
+        kind:
+          type: string
+          enum: [image]
+        url:
+          type: string
+          format: uri
+        alt:
+          type: string
+
+    ResolvedAudio:
+      type: object
+      required: [kind, url]
+      properties:
+        kind:
+          type: string
+          enum: [audio]
+        url:
+          type: string
+          format: uri
+
+    ResolvedVideo:
+      type: object
+      required: [kind]
+      properties:
+        kind:
+          type: string
+          enum: [video]
+        url:
+          type: string
+          format: uri
+        embed:
+          type: string
+          description: e.g. youtube
+        embed_id:
+          type: string

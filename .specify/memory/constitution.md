@@ -1,50 +1,51 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+- Version change: template → 1.0.0
+- Modified principles: N/A (initial adoption)
+- Added sections: Core Principles (5), Security & Data, Development Workflow, Governance
+- Removed sections: N/A
+- Templates: plan-template.md ⚠ verify Constitution Check gates manually; spec-template.md ✅ compatible; tasks-template.md ⚠ no change required for MVP
+- Follow-up TODOs: Add automated constitution checks in CI when tasks workflow exists
+-->
+
+# Interactive Teaching Platform Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Separation of Client and API
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+The web client and the FastAPI service MUST remain independently buildable and deployable artifacts. Shared code MUST live in explicit contracts (OpenAPI/JSON Schema) rather than shared libraries unless a dedicated package is introduced. Rationale: preserves independent release cycles and clear boundaries.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### II. Layered Frontend, MVC Backend
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+The React application MUST follow a layered structure: presentation (UI), application (hooks/state), domain (types), infrastructure (HTTP client, env). The FastAPI application MUST use routers for HTTP, controllers or services for orchestration, and repositories for MongoDB access. Rationale: predictable structure and test seams.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### III. Contract-First Interfaces
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+Public HTTP APIs MUST be documented in `specs/*/contracts/` and kept stable within a minor version. Breaking changes require a MAJOR version bump in API versioning strategy and migration notes. Rationale: protects the frontend and future integrators.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### IV. Security by Default
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+All user-controlled or teacher-supplied rich text MUST be sanitized before storage or rendering rules allow unsafe HTML. External URLs for media or embeds MUST pass an allowlist policy. CORS MUST restrict origins in non-local deployments. MongoDB MUST not be exposed to the public internet in production. Rationale: teaching content is still an attack surface for XSS and SSRF.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### V. Test-Backed Critical Paths
+
+Backend repositories and API handlers MUST have automated tests for lesson read/write and interactive node resolution. Frontend MUST have tests for modal open/close and at least one hotspot type flow. Rationale: regressions in content delivery break trust immediately.
+
+## Security & Data
+
+- UTF-8 is the standard encoding for all text and API payloads.
+- Secrets (MongoDB credentials, API keys) MUST come from environment variables or secret stores, never committed.
+- Logs MUST NOT contain full lesson body content or tokens in production.
+
+## Development Workflow
+
+- Feature work uses Spec Kit artifacts under `specs/<feature>/` (spec, plan, research, data model, contracts, quickstart).
+- Local development uses Docker Compose for MongoDB; backend and frontend run as separate dev processes.
+- Code review MUST verify constitution principles for new endpoints and UI that handles HTML or URLs.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes ad-hoc conventions for this repository. Amendments require a PR that updates this file, increments version per semantic rules, and updates the Sync Impact Report comment. Complexity that violates a principle MUST be recorded in the feature plan’s Complexity Tracking table with justification.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-04-12 | **Last Amended**: 2026-04-12

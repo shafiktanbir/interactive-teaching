@@ -1,0 +1,16 @@
+.cursor/
+.vscode/**
+.idea/**
+.DS_Store
+
+# Dependencies & build
+node_modules/
+frontend/dist/
+backend/.venv/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+
+# Local env (use .env.example templates)
+.env
+frontend/.env

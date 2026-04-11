@@ -1,0 +1,10 @@
+/* Global reset; app styles live in App.css */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+}

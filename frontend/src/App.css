@@ -1,0 +1,271 @@
+:root {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  color: #1a1a1a;
+  background: #f3f4f6;
+  line-height: 1.5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.app-root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  background: linear-gradient(90deg, #2563eb, #1e3a8a);
+  color: #fff;
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+
+.app-header-title {
+  margin: 0;
+  font-size: 1.75rem;
+}
+
+.app-header-sub {
+  margin: 0.35rem 0 0;
+  opacity: 0.95;
+  font-size: 0.95rem;
+}
+
+.app-body {
+  flex: 1;
+  padding: 1.25rem 1.25rem 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.layout-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .layout-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.main-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.content-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1rem 1.1rem;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
+}
+
+.section-title {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+  color: #1e3a8a;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.media-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+  cursor: pointer;
+  font: inherit;
+}
+
+.media-chip-icon {
+  color: #dc2626;
+  display: inline-flex;
+}
+
+.media-chip-label {
+  color: #dc2626;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.media-chip-search {
+  color: #2563eb;
+}
+
+.article-card {
+  min-height: 200px;
+}
+
+.tiptap-readonly {
+  outline: none;
+}
+
+.tiptap-readonly .ProseMirror {
+  outline: none;
+}
+
+.tiptap-readonly h2,
+.tiptap-readonly h3,
+.tiptap-readonly h4 {
+  color: #1e3a8a;
+  margin: 0.75rem 0 0.5rem;
+}
+
+.tiptap-readonly p {
+  margin: 0.5rem 0;
+}
+
+.hotspot-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0 0.1rem;
+  cursor: pointer;
+  font: inherit;
+  vertical-align: baseline;
+}
+
+.hotspot-label {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.hotspot-search {
+  color: #2563eb;
+}
+
+.sidebar {
+  position: sticky;
+  top: 1rem;
+}
+
+.sidebar-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  color: #1e3a8a;
+}
+
+.toc-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.toc-button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 0.75rem;
+  border: none;
+  border-radius: 8px;
+  background: #312e81;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.toc-chevron {
+  display: inline-block;
+  transition: transform 0.15s ease;
+  font-size: 0.75rem;
+}
+
+.toc-chevron.open {
+  transform: rotate(-180deg);
+}
+
+.toc-nested {
+  margin: 0.35rem 0 0 0.75rem;
+  padding: 0;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgb(15 23 42 / 35%);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 50;
+}
+
+.modal-panel {
+  position: relative;
+  background: #fff;
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem 1.5rem;
+  max-width: min(640px, 100%);
+  width: 100%;
+  box-shadow: 0 10px 40px rgb(0 0 0 / 18%);
+}
+
+.modal-close {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.5rem;
+  border: none;
+  background: transparent;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.modal-body {
+  margin: 0;
+  color: #111827;
+}
+
+.modal-body.error {
+  color: #b91c1c;
+}
+
+.modal-media img,
+.modal-media video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.modal-video iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: 6px;
+}
+
+.panel-muted {
+  color: #6b7280;
+}
+
+.panel-muted.error {
+  color: #b91c1c;
+}
