@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
+import Underline from '@tiptap/extension-underline'
 import { useQuery } from '@tanstack/react-query'
 import { fetchLesson } from '../infrastructure/api'
 import { InteractiveHotspot } from './extensions/interactiveHotspot'
@@ -9,6 +10,7 @@ import { InteractiveChip } from './InteractiveChip'
 import { SidebarTOC } from './SidebarTOC'
 import { LessonProvider } from '../application/LessonProvider'
 import { AddMultimediaModal } from './AddMultimediaModal'
+import { LessonArticleBubbleEdit } from './LessonArticleBubbleEdit'
 
 const emptyDoc = { type: 'doc', content: [{ type: 'paragraph' }] }
 
@@ -31,6 +33,7 @@ function LessonViewInner({ lessonId }: Props) {
         autolink: true,
         linkOnPaste: true,
       }),
+      Underline,
       InteractiveHotspot,
     ],
     editable: false,
@@ -80,7 +83,10 @@ function LessonViewInner({ lessonId }: Props) {
           </section>
           <section className="content-card article-card">
             {editor ? (
-              <EditorContent editor={editor} className="tiptap-readonly" />
+              <>
+                <EditorContent editor={editor} className="tiptap-readonly" />
+                <LessonArticleBubbleEdit editor={editor} lessonId={lessonId} />
+              </>
             ) : (
               <p className="panel-muted">Preparing editor…</p>
             )}
