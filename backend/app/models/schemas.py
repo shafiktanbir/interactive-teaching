@@ -8,6 +8,7 @@ class TOCItem(BaseModel):
     id: str
     label: str
     children: list["TOCItem"] = Field(default_factory=list)
+    body: dict[str, Any] | None = None  # TipTap JSON for expandable sidebar panel
 
 
 class MultimediaStripItem(BaseModel):

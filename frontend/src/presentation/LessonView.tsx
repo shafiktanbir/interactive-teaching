@@ -92,7 +92,7 @@ function LessonViewInner({ lessonId }: Props) {
             )}
           </section>
         </main>
-        <SidebarTOC toc={lesson.toc} />
+        <SidebarTOC toc={lesson.toc} lessonId={lessonId} />
       </div>
       <AddMultimediaModal lessonId={lessonId} open={addOpen} onClose={() => setAddOpen(false)} />
     </>

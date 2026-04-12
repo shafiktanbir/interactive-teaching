@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { TOCItem } from '../domain/types'
+import { TocSectionBody } from './TocSectionBody'
 
 function Chevron({ open }: { open: boolean }) {
   return (
@@ -9,14 +10,13 @@ function Chevron({ open }: { open: boolean }) {
   )
 }
 
-function Section({
-  item,
-  defaultOpen,
-}: {
-  item: TOCItem
-  defaultOpen: boolean
-}) {
-  const [open, setOpen] = useState(defaultOpen)
+function Section({ item, lessonId }: { item: TOCItem; lessonId: string }) {
+  const [open, setOpen] = useState(false)
+  const [expandedOnce, setExpandedOnce] = useState(false)
+
+  useEffect(() => {
+    if (open) setExpandedOnce(true)
+  }, [open])
 
   return (
     <div className="toc-section">
@@ -26,27 +26,34 @@ function Section({
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
       >
-        <span>{item.label}</span>
+        <span className="toc-button-label">{item.label}</span>
         <Chevron open={open} />
       </button>
-      {open && item.children?.length ? (
-        <ul className="toc-nested">
-          {item.children.map((c) => (
-            <li key={c.id}>{c.label}</li>
-          ))}
-        </ul>
+      {open && expandedOnce ? (
+        <div className="toc-expand-panel">
+          <TocSectionBody item={item} lessonId={lessonId} />
+          {item.children?.length ? (
+            <ul className="toc-nested">
+              {item.children.map((c) => (
+                <li key={c.id}>{c.label}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
       ) : null}
     </div>
   )
 }
 
-export function SidebarTOC({ toc }: { toc: TOCItem[] }) {
+type Props = { toc: TOCItem[]; lessonId: string }
+
+export function SidebarTOC({ toc, lessonId }: Props) {
   return (
     <aside className="sidebar">
       <h2 className="sidebar-title">Expandable Content</h2>
       <div className="toc-stack">
-        {toc.map((item, i) => (
-          <Section key={item.id} item={item} defaultOpen={i === 0} />
+        {toc.map((item) => (
+          <Section key={item.id} item={item} lessonId={lessonId} />
         ))}
       </div>
     </aside>

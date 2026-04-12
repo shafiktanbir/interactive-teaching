@@ -2,6 +2,8 @@ export type TOCItem = {
   id: string
   label: string
   children: TOCItem[]
+  /** TipTap JSON for expandable sidebar panel copy */
+  body?: Record<string, unknown> | null
 }
 
 export type MultimediaStripItem = {

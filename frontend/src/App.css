@@ -188,6 +188,34 @@ body {
   cursor: pointer;
 }
 
+.toc-button-label {
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.toc-expand-panel {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0 0.25rem 0.5rem;
+  border-left: 3px solid #e0e7ff;
+}
+
+.toc-body-panel {
+  position: relative;
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.toc-body-editor .ProseMirror {
+  min-height: 2.5rem;
+  outline: none;
+}
+
+.toc-body-loading {
+  margin: 0.25rem 0;
+  font-size: 0.85rem;
+}
+
 .toc-chevron {
   display: inline-block;
   transition: transform 0.15s ease;

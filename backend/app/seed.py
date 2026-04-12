@@ -12,6 +12,98 @@ N_YOUTUBE = ObjectId("507f1f77bcf86cd799439015")
 LESSON_ID = ObjectId("507f1f77bcf86cd799439020")
 
 
+def _toc_bodies_demo() -> dict[str, dict]:
+    """TipTap JSON documents for sidebar expandable panels."""
+    return {
+        "intro": {
+            "type": "doc",
+            "content": [
+                {
+                    "type": "paragraph",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "This introduction summarizes what you will find in the lesson. ",
+                        },
+                        {"type": "text", "marks": [{"type": "bold"}], "text": "Key ideas"},
+                        {"type": "text", "text": " are highlighted for quick scanning."},
+                    ],
+                },
+                {
+                    "type": "paragraph",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": (
+                                "Use the main article for full context; expand these sections for "
+                                "short notes and resources."
+                            ),
+                        }
+                    ],
+                },
+            ],
+        },
+        "detail": {
+            "type": "doc",
+            "content": [
+                {
+                    "type": "paragraph",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": (
+                                "Here is a deeper walkthrough of the concepts. You can edit this text "
+                                "from the sidebar using the same rich formatting as the article."
+                            ),
+                        }
+                    ],
+                },
+                {
+                    "type": "paragraph",
+                    "content": [
+                        {"type": "text", "text": "Try "},
+                        {"type": "text", "marks": [{"type": "italic"}], "text": "italic"},
+                        {"type": "text", "text": ", "},
+                        {"type": "text", "marks": [{"type": "underline"}], "text": "underline"},
+                        {"type": "text", "text": ", and links to supporting material."},
+                    ],
+                },
+            ],
+        },
+        "resources": {
+            "type": "doc",
+            "content": [
+                {
+                    "type": "paragraph",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "Additional reading, downloads, and external references can be listed here.",
+                        }
+                    ],
+                },
+                {
+                    "type": "paragraph",
+                    "content": [
+                        {"type": "text", "text": "Example: "},
+                        {
+                            "type": "text",
+                            "marks": [
+                                {
+                                    "type": "link",
+                                    "attrs": {"href": "https://example.com", "target": "_blank"},
+                                }
+                            ],
+                            "text": "Example resource link",
+                        },
+                        {"type": "text", "text": " (dummy URL)."},
+                    ],
+                },
+            ],
+        },
+    }
+
+
 def _sample_content() -> dict:
     """TipTap JSON document with interactiveHotspot nodes (matches frontend extension)."""
     return {
@@ -201,6 +293,7 @@ async def seed_if_empty(db: AsyncIOMotorDatabase) -> None:
 
     if await lessons.estimated_document_count() == 0:
         now = datetime.now(timezone.utc)
+        demo_bodies = _toc_bodies_demo()
         await lessons.insert_one(
             {
                 "_id": LESSON_ID,
@@ -210,16 +303,19 @@ async def seed_if_empty(db: AsyncIOMotorDatabase) -> None:
                         "id": "intro",
                         "label": "Introduction",
                         "children": [],
+                        "body": demo_bodies["intro"],
                     },
                     {
                         "id": "detail",
                         "label": "Detailed Explanation",
                         "children": [],
+                        "body": demo_bodies["detail"],
                     },
                     {
                         "id": "resources",
                         "label": "Additional Resources",
                         "children": [],
+                        "body": demo_bodies["resources"],
                     },
                 ],
                 "content": _sample_content(),
@@ -251,3 +347,26 @@ async def seed_if_empty(db: AsyncIOMotorDatabase) -> None:
                 }
             },
         )
+
+    # Backfill TOC bodies on demo lesson if created before body field existed
+    demo2 = await lessons.find_one({"_id": LESSON_ID})
+    if demo2 and demo2.get("toc"):
+        toc_raw = demo2["toc"]
+        needs_body = isinstance(toc_raw, list) and (
+            not toc_raw or not isinstance(toc_raw[0], dict) or toc_raw[0].get("body") is None
+        )
+        if needs_body:
+            bodies = _toc_bodies_demo()
+            id_to_body = {
+                "intro": bodies["intro"],
+                "detail": bodies["detail"],
+                "resources": bodies["resources"],
+            }
+            patched: list[dict] = []
+            for row in toc_raw:
+                if not isinstance(row, dict):
+                    continue
+                rid = row.get("id")
+                copy = {**row, "body": id_to_body.get(str(rid), bodies["intro"])}
+                patched.append(copy)
+            await lessons.update_one({"_id": LESSON_ID}, {"$set": {"toc": patched}})

@@ -13,11 +13,14 @@ def _toc_from_doc(items: list[dict[str, Any]] | None) -> list[TOCItem]:
     out: list[TOCItem] = []
     for raw in items or []:
         children_raw = raw.get("children") or []
+        body_raw = raw.get("body")
+        body = body_raw if isinstance(body_raw, dict) else None
         out.append(
             TOCItem(
                 id=raw["id"],
                 label=raw["label"],
                 children=_toc_from_doc(children_raw) if isinstance(children_raw, list) else [],
+                body=body,
             )
         )
     return out

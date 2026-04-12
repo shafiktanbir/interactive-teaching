@@ -1,69 +1,27 @@
 import type { Editor } from '@tiptap/core'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { BubbleMenu } from '@tiptap/react/menus'
-import { EditorContent, useEditor, useEditorState } from '@tiptap/react'
+import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
 import Underline from '@tiptap/extension-underline'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { canSelectToEdit } from '../domain/lessonSelectionEdit'
 import { inlineContentFromMiniDoc, selectionToMiniDocJSON } from '../domain/lessonSelectionSlice'
+import type { LessonPatch } from '../domain/types'
 import { patchLesson } from '../infrastructure/api'
+import { RichSelectionToolbar } from './RichSelectionToolbar'
 
 const emptyMiniDoc = { type: 'doc', content: [{ type: 'paragraph', content: [] }] }
 
 type Props = {
   editor: Editor
   lessonId: string
+  /** Default: `{ content: editor.getJSON() }` after a successful in-place edit. */
+  buildPatch?: (editor: Editor) => LessonPatch
 }
 
-function SelectionFormatToolbar({
-  subEditor,
-  onLink,
-}: {
-  subEditor: Editor
-  onLink: () => void
-}) {
-  const { bold, italic, underline } = useEditorState({
-    editor: subEditor,
-    selector: (ctx) => ({
-      bold: ctx.editor?.isActive('bold') ?? false,
-      italic: ctx.editor?.isActive('italic') ?? false,
-      underline: ctx.editor?.isActive('underline') ?? false,
-    }),
-  })
-
-  return (
-    <div className="rich-toolbar lesson-edit-toolbar" role="toolbar" aria-label="Formatting">
-      <button
-        type="button"
-        className={bold ? 'active' : ''}
-        onClick={() => subEditor.chain().focus().toggleBold().run()}
-      >
-        Bold
-      </button>
-      <button
-        type="button"
-        className={italic ? 'active' : ''}
-        onClick={() => subEditor.chain().focus().toggleItalic().run()}
-      >
-        Italic
-      </button>
-      <button
-        type="button"
-        className={underline ? 'active' : ''}
-        onClick={() => subEditor.chain().focus().toggleUnderline().run()}
-      >
-        Underline
-      </button>
-      <button type="button" onClick={onLink}>
-        Link
-      </button>
-    </div>
-  )
-}
-
-export function LessonArticleBubbleEdit({ editor, lessonId }: Props) {
+export function LessonArticleBubbleEdit({ editor, lessonId, buildPatch }: Props) {
   const queryClient = useQueryClient()
   const rangeRef = useRef<{ from: number; to: number } | null>(null)
   const [panelOpen, setPanelOpen] = useState(false)
@@ -89,7 +47,7 @@ export function LessonArticleBubbleEdit({ editor, lessonId }: Props) {
   })
 
   const saveMutation = useMutation({
-    mutationFn: async (content: Record<string, unknown>) => patchLesson(lessonId, { content }),
+    mutationFn: async (patch: LessonPatch) => patchLesson(lessonId, patch),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lesson', lessonId] })
       setError(null)
@@ -159,8 +117,11 @@ export function LessonArticleBubbleEdit({ editor, lessonId }: Props) {
 
     setPanelOpen(false)
     rangeRef.current = null
-    saveMutation.mutate(editor.getJSON() as Record<string, unknown>)
-  }, [editor, subEditor, saveMutation])
+    const patch = buildPatch
+      ? buildPatch(editor)
+      : { content: editor.getJSON() as Record<string, unknown> }
+    saveMutation.mutate(patch)
+  }, [editor, subEditor, saveMutation, buildPatch])
 
   useEffect(() => {
     if (!panelOpen) return
@@ -237,7 +198,7 @@ export function LessonArticleBubbleEdit({ editor, lessonId }: Props) {
             <p className="lesson-edit-panel-sub muted">Use the toolbar for bold, italic, underline, and links.</p>
             {subEditor ? (
               <div className="lesson-edit-rich-wrap">
-                <SelectionFormatToolbar subEditor={subEditor} onLink={setLink} />
+                <RichSelectionToolbar subEditor={subEditor} onLink={setLink} />
                 <EditorContent editor={subEditor} />
               </div>
             ) : (
