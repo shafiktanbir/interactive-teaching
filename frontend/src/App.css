@@ -430,47 +430,35 @@ body {
 
 .lesson-bubble-menu {
   display: flex;
-  align-items: stretch;
-  gap: 0.25rem;
-  padding: 0.35rem 0.45rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.35rem;
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
   z-index: 50;
-  max-width: min(100vw - 2rem, 18rem);
 }
 
-.lesson-bubble-edit-primary {
+.lesson-bubble-edit-icon-btn {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.15rem;
-  padding: 0.45rem 0.65rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 0.5rem;
   border: none;
   border-radius: 8px;
-  background: #2563eb;
-  color: #fff;
+  background: #f3f4f6;
+  color: #1f2937;
   cursor: pointer;
   font: inherit;
-  text-align: left;
-  width: 100%;
 }
 
-.lesson-bubble-edit-primary:hover {
-  background: #1d4ed8;
+.lesson-bubble-edit-icon-btn:hover {
+  background: #e5e7eb;
 }
 
-.lesson-bubble-edit-label {
-  font-weight: 600;
-  font-size: 0.95rem;
-}
-
-.lesson-bubble-edit-hint {
-  font-size: 0.75rem;
-  font-weight: 400;
-  opacity: 0.92;
-  line-height: 1.25;
+.lesson-bubble-edit-icon {
+  display: block;
 }
 
 .lesson-edit-panel-backdrop {
