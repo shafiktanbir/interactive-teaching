@@ -27,6 +27,77 @@ def _sample_content() -> dict:
                 "content": [
                     {
                         "type": "text",
+                        "text": (
+                            "This section shows how lessons combine ordinary rich text—"
+                        ),
+                    },
+                    {
+                        "type": "text",
+                        "text": "bold",
+                        "marks": [{"type": "bold"}],
+                    },
+                    {"type": "text", "text": ", "},
+                    {
+                        "type": "text",
+                        "text": "italic",
+                        "marks": [{"type": "italic"}],
+                    },
+                    {"type": "text", "text": ", and "},
+                    {
+                        "type": "text",
+                        "text": "links",
+                        "marks": [
+                            {
+                                "type": "link",
+                                "attrs": {
+                                    "href": "https://developer.mozilla.org/",
+                                    "target": "_blank",
+                                    "rel": "noopener noreferrer nofollow",
+                                },
+                            }
+                        ],
+                    },
+                    {
+                        "type": "text",
+                        "text": (
+                            "—with interactive hotspots. Read the paragraphs below, "
+                            "then tap any red term with the magnifying glass to open media or notes."
+                        ),
+                    },
+                ],
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": (
+                            "নিচের অনুচ্ছেগুলো শিক্ষকদের জন্য একটি নমুনা সংবাদের অংশ। "
+                            "শিক্ষার্থীরা মূল পাঠের মধ্যেই অডিও, ভিডিও বা সংজ্ঞা খুলতে পারে—"
+                            "আলাদা ট্যাব বা অ্যাপ ছাড়াই। দীর্ঘ পাঠ হলে বিভাগ শিরোনাম ও "
+                            "সাইডবারের সূচিপত্র নেভিগেশন সহজ করে।"
+                        ),
+                    },
+                ],
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": (
+                            "Teachers can extend this block with more context: background on the topic, "
+                            "discussion prompts, or a short summary. The layout stays the same whether "
+                            "the body is two lines or two screens long."
+                        ),
+                    },
+                ],
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
                         "text": "এটি একটি নমুনা অনুচ্ছেদ। শব্দটি দেখুন ",
                     },
                     {
@@ -152,6 +223,31 @@ async def seed_if_empty(db: AsyncIOMotorDatabase) -> None:
                     },
                 ],
                 "content": _sample_content(),
+                "multimedia_strip": [
+                    {"node_id": str(N_TEXT), "label": "A Text"},
+                    {"node_id": str(N_IMAGE), "label": "Image"},
+                    {"node_id": str(N_AUDIO), "label": "Audio"},
+                    {"node_id": str(N_VIDEO), "label": "MyVid"},
+                    {"node_id": str(N_YOUTUBE), "label": "YouTube"},
+                ],
                 "updated_at": now,
             }
+        )
+
+    # Backfill multimedia_strip on demo lesson if DB was created before this field existed
+    demo = await lessons.find_one({"_id": LESSON_ID})
+    if demo and not demo.get("multimedia_strip"):
+        await lessons.update_one(
+            {"_id": LESSON_ID},
+            {
+                "$set": {
+                    "multimedia_strip": [
+                        {"node_id": str(N_TEXT), "label": "A Text"},
+                        {"node_id": str(N_IMAGE), "label": "Image"},
+                        {"node_id": str(N_AUDIO), "label": "Audio"},
+                        {"node_id": str(N_VIDEO), "label": "MyVid"},
+                        {"node_id": str(N_YOUTUBE), "label": "YouTube"},
+                    ]
+                }
+            },
         )

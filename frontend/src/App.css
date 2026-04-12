@@ -269,3 +269,161 @@ body {
 .panel-muted.error {
   color: #b91c1c;
 }
+
+.modal-panel--wide {
+  max-width: min(900px, 100%);
+  max-height: min(90vh, 900px);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-scroll {
+  overflow: auto;
+  max-height: 75vh;
+  padding-right: 0.25rem;
+}
+
+.media-chip-add {
+  border-style: dashed;
+  color: #2563eb;
+}
+
+.media-chip-add .media-chip-label {
+  color: #2563eb;
+}
+
+.rich-modal {
+  min-height: 200px;
+}
+
+.rich-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.rich-toolbar button {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.rich-toolbar button.active {
+  background: #eff6ff;
+  border-color: #2563eb;
+  color: #1d4ed8;
+}
+
+.rich-modal-editor {
+  min-height: 160px;
+  outline: none;
+  line-height: 1.6;
+}
+
+.rich-modal-editor .ProseMirror {
+  outline: none;
+  min-height: 140px;
+}
+
+.rich-modal-editor p {
+  margin: 0.35rem 0;
+}
+
+.save-pill {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.save-pill[data-state='saving'] {
+  color: #2563eb;
+}
+
+.save-pill[data-state='saved'] {
+  color: #059669;
+}
+
+.save-pill[data-state='error'] {
+  color: #b91c1c;
+}
+
+.url-modal .url-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  color: #374151;
+  margin-bottom: 0.75rem;
+}
+
+.url-input {
+  font: inherit;
+  padding: 0.45rem 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+}
+
+.web-iframe {
+  width: 100%;
+  min-height: 320px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-top: 0.75rem;
+}
+
+.web-preview-external {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+}
+
+.web-preview-external a {
+  color: #2563eb;
+}
+
+.modal-title {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+  color: #1e3a8a;
+}
+
+.add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.add-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.btn-primary,
+.btn-secondary {
+  font: inherit;
+  padding: 0.45rem 0.85rem;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid #d1d5db;
+  background: #fff;
+}
+
+.btn-primary {
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+}
+
+.muted {
+  color: #6b7280;
+  font-size: 0.9rem;
+}

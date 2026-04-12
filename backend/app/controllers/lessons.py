@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 
-from app.models.schemas import Lesson, LessonInput
+from app.models.schemas import Lesson, LessonInput, LessonPatch
 from app.repositories.lessons import LessonRepository
 
 
@@ -16,6 +16,12 @@ class LessonController:
 
     async def put(self, lesson_id: str, data: LessonInput) -> Lesson:
         lesson = await self._repo.replace(lesson_id, data)
+        if not lesson:
+            raise HTTPException(status_code=404, detail="Lesson not found")
+        return lesson
+
+    async def patch(self, lesson_id: str, data: LessonPatch) -> Lesson:
+        lesson = await self._repo.patch(lesson_id, data)
         if not lesson:
             raise HTTPException(status_code=404, detail="Lesson not found")
         return lesson

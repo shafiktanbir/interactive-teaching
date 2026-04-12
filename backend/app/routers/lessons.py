@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 
 from app.controllers.lessons import LessonController
 from app.dependencies import get_lesson_controller
-from app.models.schemas import Lesson, LessonInput
+from app.models.schemas import Lesson, LessonInput, LessonPatch
 
 router = APIRouter(prefix="/lessons", tags=["lessons"])
 
@@ -22,3 +22,12 @@ async def put_lesson(
     controller: LessonController = Depends(get_lesson_controller),
 ) -> Lesson:
     return await controller.put(lesson_id, body)
+
+
+@router.patch("/{lesson_id}", response_model=Lesson)
+async def patch_lesson(
+    lesson_id: str,
+    body: LessonPatch,
+    controller: LessonController = Depends(get_lesson_controller),
+) -> Lesson:
+    return await controller.patch(lesson_id, body)
