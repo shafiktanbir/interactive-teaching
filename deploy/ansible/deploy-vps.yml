@@ -1,0 +1,211 @@
+---
+- name: Provision and deploy Interactive Teaching
+  hosts: vps
+  become: true
+  vars:
+    app_dir: "/opt/interactive-teaching"
+    env_file: ".env.local"
+    nginx_site_path: "/etc/nginx/sites-available/{{ domain }}.conf"
+    nginx_site_link: "/etc/nginx/sites-enabled/{{ domain }}.conf"
+    cert_fullchain_path: "/etc/letsencrypt/live/{{ domain }}/fullchain.pem"
+    cert_privkey_path: "/etc/letsencrypt/live/{{ domain }}/privkey.pem"
+    certbot_webroot: "/var/www/certbot"
+    web_health_url: "http://127.0.0.1:{{ backend_host_port }}/health"
+
+  tasks:
+    - name: Install required OS packages
+      ansible.builtin.apt:
+        update_cache: true
+        name:
+          - nginx
+          - certbot
+          - python3-certbot-nginx
+        state: present
+
+    - name: Ensure nginx service is enabled and running
+      ansible.builtin.systemd:
+        name: nginx
+        enabled: true
+        state: started
+
+    - name: Check app directory exists
+      ansible.builtin.stat:
+        path: "{{ app_dir }}"
+      register: app_dir_stat
+
+    - name: Fail when app directory is missing
+      ansible.builtin.fail:
+        msg: "App directory {{ app_dir }} does not exist on VPS."
+      when: not app_dir_stat.stat.exists
+
+    - name: Check env file exists
+      ansible.builtin.stat:
+        path: "{{ app_dir }}/{{ env_file }}"
+      register: env_file_stat
+
+    - name: Fail when .env.local is missing
+      ansible.builtin.fail:
+        msg: "Missing {{ env_file }} in {{ app_dir }}."
+      when: not env_file_stat.stat.exists
+
+    - name: Enforce secure permission on env file
+      ansible.builtin.file:
+        path: "{{ app_dir }}/{{ env_file }}"
+        mode: "0600"
+
+    - name: Check if TLS cert already exists
+      ansible.builtin.stat:
+        path: "{{ cert_fullchain_path }}"
+      register: cert_stat
+
+    - name: Ensure certbot webroot exists
+      ansible.builtin.file:
+        path: "{{ certbot_webroot }}"
+        state: directory
+        mode: "0755"
+
+    - name: Write bootstrap nginx config when cert is missing
+      ansible.builtin.template:
+        src: bootstrap-http.conf.j2
+        dest: "{{ nginx_site_path }}"
+        mode: "0644"
+      when: not cert_stat.stat.exists
+      notify: Reload nginx safely
+
+    - name: Write full TLS nginx config when cert exists
+      ansible.builtin.template:
+        src: tls-site.conf.j2
+        dest: "{{ nginx_site_path }}"
+        mode: "0644"
+      when: cert_stat.stat.exists
+      notify: Reload nginx safely
+
+    - name: Enable nginx site
+      ansible.builtin.file:
+        src: "{{ nginx_site_path }}"
+        dest: "{{ nginx_site_link }}"
+        state: link
+        force: true
+
+    - name: Disable default nginx site when present
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+
+    - name: Flush nginx changes before cert issuance
+      ansible.builtin.meta: flush_handlers
+      when: not cert_stat.stat.exists
+
+    - name: Issue cert with certbot when missing
+      ansible.builtin.command: >
+        certbot certonly --webroot -w {{ certbot_webroot }}
+        -d {{ domain }} --non-interactive --agree-tos
+        --email {{ certbot_email }}
+      when: not cert_stat.stat.exists
+      changed_when: true
+
+    - name: Check if TLS cert exists after issuance
+      ansible.builtin.stat:
+        path: "{{ cert_fullchain_path }}"
+      register: cert_stat_after
+
+    - name: Write full TLS nginx config after cert issuance
+      ansible.builtin.template:
+        src: tls-site.conf.j2
+        dest: "{{ nginx_site_path }}"
+        mode: "0644"
+      when: cert_stat_after.stat.exists
+      notify: Reload nginx safely
+
+    - name: Flush nginx changes after cert tasks
+      ansible.builtin.meta: flush_handlers
+
+    - name: Certbot renew dry-run
+      ansible.builtin.command: certbot renew --dry-run
+      changed_when: false
+      failed_when: false
+
+    - name: Install Docker Engine and Docker Compose v2 (Ubuntu)
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - docker-compose-v2
+        state: present
+
+    - name: Enable and start Docker
+      ansible.builtin.systemd:
+        name: docker
+        enabled: true
+        state: started
+
+    - name: Add deploy user to docker group
+      ansible.builtin.user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: true
+
+    - name: Reset SSH connection so docker group applies
+      ansible.builtin.meta: reset_connection
+
+    - name: Check docker compose file present (deploy bundle from CI)
+      become: false
+      ansible.builtin.stat:
+        path: "{{ app_dir }}/docker-compose.yml"
+      register: compose_file_stat
+
+    - name: Fail when docker-compose.yml missing
+      ansible.builtin.fail:
+        msg: "Missing {{ app_dir }}/docker-compose.yml. CI must rsync the app before this playbook runs."
+      when: not compose_file_stat.stat.exists
+
+    - name: Validate docker compose config
+      become: false
+      ansible.builtin.command: docker compose --env-file "{{ env_file }}" config
+      args:
+        chdir: "{{ app_dir }}"
+      changed_when: false
+
+    - name: Pull docker images (best effort)
+      become: false
+      ansible.builtin.command: docker compose --env-file "{{ env_file }}" pull
+      args:
+        chdir: "{{ app_dir }}"
+      changed_when: false
+      failed_when: false
+
+    - name: Build docker services
+      become: false
+      ansible.builtin.command: docker compose --env-file "{{ env_file }}" build
+      args:
+        chdir: "{{ app_dir }}"
+
+    - name: Run docker stack
+      become: false
+      ansible.builtin.command: docker compose --env-file "{{ env_file }}" up -d --remove-orphans
+      args:
+        chdir: "{{ app_dir }}"
+
+    - name: Show compose services status
+      become: false
+      ansible.builtin.command: docker compose --env-file "{{ env_file }}" ps
+      args:
+        chdir: "{{ app_dir }}"
+      changed_when: false
+
+    - name: App health check
+      become: false
+      ansible.builtin.uri:
+        url: "{{ web_health_url }}"
+        method: GET
+        status_code: 200
+
+  handlers:
+    - name: Reload nginx safely
+      ansible.builtin.command: nginx -t
+      changed_when: false
+      notify: Reload nginx service
+
+    - name: Reload nginx service
+      ansible.builtin.systemd:
+        name: nginx
+        state: reloaded

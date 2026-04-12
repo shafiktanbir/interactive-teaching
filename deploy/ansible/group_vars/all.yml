@@ -1,0 +1,7 @@
+# Override via `-e` or edit before deploy. DNS for `domain` must point at the VPS before certbot.
+domain: "example.com"
+certbot_email: "admin@example.com"
+
+# Must match FRONTEND_PUBLISH_PORT / BACKEND_PUBLISH_PORT in .env.local (see .env.docker.example)
+frontend_host_port: 8080
+backend_host_port: 8000

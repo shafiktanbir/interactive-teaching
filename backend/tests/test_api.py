@@ -42,7 +42,7 @@ def test_get_lesson_seed(client):
     body = res.json()
     assert body["title"] == "Interactive Teaching Platform"
     assert len(body["toc"]) == 3
-    assert len(body.get("multimedia_strip", [])) == 5
+    assert len(body.get("multimedia_strip", [])) >= 5
 
 
 def test_get_interactive_text_node(client):

@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -292,7 +292,7 @@ async def seed_if_empty(db: AsyncIOMotorDatabase) -> None:
         )
 
     if await lessons.estimated_document_count() == 0:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         demo_bodies = _toc_bodies_demo()
         await lessons.insert_one(
             {

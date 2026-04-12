@@ -1,9 +1,9 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
-from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
 from bson.errors import InvalidId
+from motor.motor_asyncio import AsyncIOMotorDatabase
 from pymongo import ReturnDocument
 
 from app.models.schemas import Lesson, LessonInput, LessonPatch, MultimediaStripItem, TOCItem
@@ -47,7 +47,7 @@ class LessonRepository:
     def _doc_to_lesson(self, doc: dict[str, Any]) -> Lesson:
         updated = doc.get("updated_at")
         if isinstance(updated, datetime) and updated.tzinfo is None:
-            updated = updated.replace(tzinfo=timezone.utc)
+            updated = updated.replace(tzinfo=UTC)
         return Lesson(
             id=str(doc["_id"]),
             title=doc["title"],
@@ -95,7 +95,7 @@ class LessonRepository:
             oid = ObjectId(lesson_id)
         except InvalidId:
             return None
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         toc_dump = [t.model_dump() for t in data.toc]
         strip_dump = [
             {"node_id": s.node_id, "label": s.label} for s in data.multimedia_strip
@@ -125,7 +125,7 @@ class LessonRepository:
         existing = await self._col.find_one({"_id": oid})
         if not existing:
             return None
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         updates: dict[str, Any] = {"updated_at": now}
         if data.title is not None:
             updates["title"] = data.title

@@ -26,7 +26,7 @@ help:
 	@echo "First time:  make mongo && make setup-env && make install && make dev"
 
 mongo:
-	docker compose up -d
+	docker compose up -d mongo
 
 mongo-down:
 	docker compose down

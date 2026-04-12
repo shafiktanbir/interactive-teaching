@@ -3,12 +3,42 @@ services:
     image: mongo:7
     restart: unless-stopped
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-root}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-interactive}
     volumes:
       - mongo_data:/data/db
+    networks:
+      - app_net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env.local
+    ports:
+      - "127.0.0.1:${BACKEND_PUBLISH_PORT:-8000}:8000"
+    depends_on:
+      - mongo
+    networks:
+      - app_net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${FRONTEND_PUBLISH_PORT:-8080}:80"
+    networks:
+      - app_net
+
+networks:
+  app_net:
+    driver: bridge
 
 volumes:
   mongo_data:

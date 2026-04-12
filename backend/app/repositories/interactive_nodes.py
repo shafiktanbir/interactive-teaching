@@ -1,8 +1,8 @@
 from typing import Any
 
-from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
 from bson.errors import InvalidId
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
 
 class InteractiveNodeRepository:

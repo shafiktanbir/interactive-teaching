@@ -13,4 +13,5 @@ backend/.venv/
 
 # Local env (use .env.example templates)
 .env
+.env.local
 frontend/.env

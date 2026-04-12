@@ -1,0 +1,139 @@
+name: Deploy VPS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-vps-main
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_PORT: ${{ secrets.VPS_PORT }}
+      VPS_USERNAME: ${{ secrets.VPS_USERNAME }}
+      VPS_SSH_KEY_B64: ${{ secrets.VPS_SSH_KEY_B64 }}
+      VPS_APP_DIR: ${{ secrets.VPS_APP_DIR }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(VPS_HOST VPS_PORT VPS_USERNAME VPS_SSH_KEY_B64 VPS_APP_DIR)
+          for key in "${required[@]}"; do
+            if [ -z "${!key:-}" ]; then
+              echo "Missing required secret: ${key}" >&2
+              exit 1
+            fi
+          done
+
+      - name: Prepare SSH key and known_hosts
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY_B64 }}" | base64 -d > ~/.ssh/vps_deploy_key
+          chmod 600 ~/.ssh/vps_deploy_key
+          ssh-keyscan -p "${VPS_PORT}" "${VPS_HOST}" >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Ensure VPS app directory exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/vps_deploy_key \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile=~/.ssh/known_hosts \
+            -p "${VPS_PORT}" \
+            "${VPS_USERNAME}@${VPS_HOST}" \
+            "mkdir -p '${VPS_APP_DIR}'"
+
+      - name: Rsync repository checkout to VPS
+        shell: bash
+        run: |
+          set -euo pipefail
+          rsync -az --delete \
+            --exclude '.git/' \
+            --exclude 'node_modules/' \
+            --exclude '.next/' \
+            --exclude 'out/' \
+            --exclude 'build/' \
+            --exclude 'coverage/' \
+            --exclude '.pnpm-store/' \
+            --exclude '.vercel/' \
+            --exclude '.cursor/' \
+            --exclude 'backend/.venv/' \
+            --exclude '**/__pycache__/' \
+            --exclude '.pytest_cache/' \
+            --exclude 'frontend/dist/' \
+            -e "ssh -i ${HOME}/.ssh/vps_deploy_key -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${HOME}/.ssh/known_hosts -p ${VPS_PORT}" \
+            "${GITHUB_WORKSPACE}/" \
+            "${VPS_USERNAME}@${VPS_HOST}:${VPS_APP_DIR}/"
+
+      - name: Seed .env.local from .env.docker.example (overwrite)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f "${GITHUB_WORKSPACE}/.env.docker.example"
+          scp -i ~/.ssh/vps_deploy_key \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile=~/.ssh/known_hosts \
+            -P "${VPS_PORT}" \
+            "${GITHUB_WORKSPACE}/.env.docker.example" \
+            "${VPS_USERNAME}@${VPS_HOST}:${VPS_APP_DIR}/.env.local"
+          ssh -i ~/.ssh/vps_deploy_key \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile=~/.ssh/known_hosts \
+            -p "${VPS_PORT}" \
+            "${VPS_USERNAME}@${VPS_HOST}" \
+            "chmod 600 '${VPS_APP_DIR}/.env.local'"
+
+      - name: Verify .env.local exists on VPS
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/vps_deploy_key \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile=~/.ssh/known_hosts \
+            -p "${VPS_PORT}" \
+            "${VPS_USERNAME}@${VPS_HOST}" \
+            "test -f '${VPS_APP_DIR}/.env.local'" || {
+              echo "Missing ${VPS_APP_DIR}/.env.local on VPS after seeding from .env.docker.example." >&2
+              exit 1
+            }
+
+      - name: Install Ansible
+        shell: bash
+        run: |
+          python3 -m pip install --user ansible
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Run Ansible playbook
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/ansible_inventory.ini <<EOF
+          [vps]
+          target ansible_host=${VPS_HOST} ansible_port=${VPS_PORT} ansible_user=${VPS_USERNAME}
+          EOF
+          ansible-playbook -i /tmp/ansible_inventory.ini \
+            "${GITHUB_WORKSPACE}/deploy/ansible/deploy-vps.yml" \
+            --private-key ~/.ssh/vps_deploy_key \
+            --ssh-common-args='-o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts' \
+            --extra-vars "app_dir=${VPS_APP_DIR}"
+
+      - name: Remove temporary SSH key
+        if: always()
+        shell: bash
+        run: |
+          rm -f ~/.ssh/vps_deploy_key
