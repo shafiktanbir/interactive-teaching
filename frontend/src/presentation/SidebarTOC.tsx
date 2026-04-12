@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { TOCItem } from '../domain/types'
 import { TocSectionBody } from './TocSectionBody'
 
@@ -14,16 +14,18 @@ function Section({ item, lessonId }: { item: TOCItem; lessonId: string }) {
   const [open, setOpen] = useState(false)
   const [expandedOnce, setExpandedOnce] = useState(false)
 
-  useEffect(() => {
-    if (open) setExpandedOnce(true)
-  }, [open])
-
   return (
     <div className="toc-section">
       <button
         type="button"
         className="toc-button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() =>
+          setOpen((o) => {
+            const next = !o
+            if (next) setExpandedOnce(true)
+            return next
+          })
+        }
         aria-expanded={open}
       >
         <span className="toc-button-label">{item.label}</span>
