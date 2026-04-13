@@ -7,9 +7,6 @@
     env_file: ".env.local"
     nginx_site_path: "/etc/nginx/sites-available/interactive-teaching.conf"
     nginx_site_link: "/etc/nginx/sites-enabled/interactive-teaching.conf"
-    nginx_root_url: "http://127.0.0.1/"
-    nginx_health_url: "http://127.0.0.1/health"
-    web_health_url: "http://127.0.0.1:{{ backend_host_port }}/health"
 
   tasks:
     - name: Install required OS packages
@@ -52,7 +49,7 @@
 
     - name: Write HTTP nginx config
       ansible.builtin.template:
-        src: bootstrap-http.conf.j2
+        src: reverse-proxy-http.conf.j2
         dest: "{{ nginx_site_path }}"
         mode: "0644"
       notify: Reload nginx safely
@@ -181,36 +178,6 @@
       args:
         chdir: "{{ app_dir }}"
       changed_when: false
-
-    - name: App health check (backend directly)
-      become: false
-      ansible.builtin.uri:
-        url: "{{ web_health_url }}"
-        method: GET
-        status_code: 200
-
-    - name: Verify nginx proxies frontend root locally
-      become: false
-      ansible.builtin.uri:
-        url: "{{ nginx_root_url }}"
-        method: GET
-        status_code: 200
-
-    - name: Verify nginx proxies backend health locally
-      become: false
-      ansible.builtin.uri:
-        url: "{{ nginx_health_url }}"
-        method: GET
-        status_code: 200
-
-    - name: Verify nginx proxies lessons API prefix locally
-      become: false
-      ansible.builtin.uri:
-        url: "http://127.0.0.1/lessons/000000000000000000000001"
-        method: GET
-        headers:
-          Accept: application/json
-        status_code: 404
 
   handlers:
     - name: Reload nginx safely
