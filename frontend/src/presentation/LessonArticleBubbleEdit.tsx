@@ -8,6 +8,7 @@ import Underline from '@tiptap/extension-underline'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { canSelectToEdit } from '../domain/lessonSelectionEdit'
 import { inlineContentFromMiniDoc, selectionToMiniDocJSON } from '../domain/lessonSelectionSlice'
+import { buildInteractiveHref, isInteractiveHref, parseInteractiveNodeIdFromHref } from '../domain/interactiveLinks'
 import type { LessonPatch } from '../domain/types'
 import { patchLesson } from '../infrastructure/api'
 import { RichSelectionToolbar } from './RichSelectionToolbar'
@@ -84,11 +85,27 @@ export function LessonArticleBubbleEdit({ editor, lessonId, buildPatch }: Props)
     const prev = subEditor.getAttributes('link').href as string | undefined
     const url = window.prompt('Link URL', prev ?? 'https://')
     if (url === null) return
-    if (url === '') {
+    const nextHref = url.trim()
+    if (nextHref === '') {
       subEditor.chain().focus().extendMarkRange('link').unsetLink().run()
+      setError(null)
       return
     }
-    subEditor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
+
+    if (isInteractiveHref(nextHref)) {
+      const nodeId = parseInteractiveNodeIdFromHref(nextHref)
+      const interactiveHref = nodeId ? buildInteractiveHref(nodeId) : null
+      if (!interactiveHref) {
+        setError('Interactive links must include a node ID (example: interactive://abc123).')
+        return
+      }
+      subEditor.chain().focus().extendMarkRange('link').setLink({ href: interactiveHref }).run()
+      setError(null)
+      return
+    }
+
+    subEditor.chain().focus().extendMarkRange('link').setLink({ href: nextHref }).run()
+    setError(null)
   }, [subEditor])
 
   const applyEdit = useCallback(() => {

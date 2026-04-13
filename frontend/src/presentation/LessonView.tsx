@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
@@ -11,6 +11,8 @@ import { SidebarTOC } from './SidebarTOC'
 import { LessonProvider } from '../application/LessonProvider'
 import { AddMultimediaModal } from './AddMultimediaModal'
 import { LessonArticleBubbleEdit } from './LessonArticleBubbleEdit'
+import { useInteractiveModal } from '../application/useInteractiveModal'
+import { isInteractiveHref, parseInteractiveNodeIdFromHref } from '../domain/interactiveLinks'
 
 const emptyDoc = { type: 'doc', content: [{ type: 'paragraph' }] }
 
@@ -18,6 +20,7 @@ type Props = { lessonId: string }
 
 function LessonViewInner({ lessonId }: Props) {
   const [addOpen, setAddOpen] = useState(false)
+  const { open } = useInteractiveModal()
   const lessonQuery = useQuery({
     queryKey: ['lesson', lessonId],
     queryFn: () => fetchLesson(lessonId),
@@ -45,6 +48,23 @@ function LessonViewInner({ lessonId }: Props) {
       editor.commands.setContent(lessonQuery.data.content)
     }
   }, [lessonQuery.data, editor])
+
+  const onArticleClickCapture = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      const target = event.target
+      if (!(target instanceof Element)) return
+      const anchor = target.closest('a[href]')
+      if (!anchor) return
+      const href = anchor.getAttribute('href')
+      if (!isInteractiveHref(href)) return
+      // Prevent browser navigation for interactive links; they should open in-app modal.
+      event.preventDefault()
+      const nodeId = parseInteractiveNodeIdFromHref(href)
+      if (!nodeId) return
+      open(nodeId)
+    },
+    [open],
+  )
 
   if (lessonQuery.isLoading) {
     return <p className="panel-muted">Loading lesson…</p>
@@ -81,7 +101,7 @@ function LessonViewInner({ lessonId }: Props) {
               </button>
             </div>
           </section>
-          <section className="content-card article-card">
+          <section className="content-card article-card" onClickCapture={onArticleClickCapture}>
             {editor ? (
               <>
                 <EditorContent editor={editor} className="tiptap-readonly" />
