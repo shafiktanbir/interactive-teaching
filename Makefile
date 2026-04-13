@@ -25,11 +25,14 @@ help:
 	@echo ""
 	@echo "First time:  make mongo && make setup-env && make install && make dev"
 
+# Prefer .env.local (deploy convention); fall back to project `.env` for Compose interpolation.
+COMPOSE_ENV_FILE := $(shell test -f .env.local && echo .env.local || echo .env)
+
 mongo:
-	docker compose up -d mongo
+	docker compose --env-file $(COMPOSE_ENV_FILE) up -d mongo
 
 mongo-down:
-	docker compose down
+	docker compose --env-file $(COMPOSE_ENV_FILE) down
 
 setup-env:
 	@test -f .env.example || { echo "Missing .env.example"; exit 1; }

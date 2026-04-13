@@ -1,4 +1,6 @@
 services:
+  # Demo data is not loaded via Mongo init scripts. The backend runs seed_if_empty()
+  # on FastAPI startup (see backend/app/main.py, backend/app/seed.py).
   mongo:
     image: mongo:7
     restart: unless-stopped
@@ -19,6 +21,11 @@ services:
     restart: unless-stopped
     env_file:
       - .env.local
+    # Inside the container, localhost is not MongoDB — use the compose service name `mongo`.
+    # `${...}` is resolved from a project `.env` file or from the file passed with
+    # `docker compose --env-file .env.local` (must match `MONGO_INITDB_*` in `.env.local`).
+    environment:
+      MONGODB_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME:-root}:${MONGO_INITDB_ROOT_PASSWORD:-interactive}@mongo:27017/interactive?authSource=admin
     ports:
       - "127.0.0.1:${BACKEND_PUBLISH_PORT:-8000}:8000"
     depends_on:
