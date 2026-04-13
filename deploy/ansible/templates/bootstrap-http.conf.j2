@@ -1,13 +1,9 @@
 server {
-    listen 80;
-    listen [::]:80;
-    server_name {{ domain }};
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
 
     client_max_body_size 100M;
-
-    location /.well-known/acme-challenge/ {
-        root {{ certbot_webroot }};
-    }
 
     location /health {
         proxy_pass http://127.0.0.1:{{ backend_host_port }};

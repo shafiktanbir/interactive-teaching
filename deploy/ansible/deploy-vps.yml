@@ -5,11 +5,10 @@
   vars:
     app_dir: "/opt/interactive-teaching"
     env_file: ".env.local"
-    nginx_site_path: "/etc/nginx/sites-available/{{ domain }}.conf"
-    nginx_site_link: "/etc/nginx/sites-enabled/{{ domain }}.conf"
-    cert_fullchain_path: "/etc/letsencrypt/live/{{ domain }}/fullchain.pem"
-    cert_privkey_path: "/etc/letsencrypt/live/{{ domain }}/privkey.pem"
-    certbot_webroot: "/var/www/certbot"
+    nginx_site_path: "/etc/nginx/sites-available/interactive-teaching.conf"
+    nginx_site_link: "/etc/nginx/sites-enabled/interactive-teaching.conf"
+    nginx_root_url: "http://127.0.0.1/"
+    nginx_health_url: "http://127.0.0.1/health"
     web_health_url: "http://127.0.0.1:{{ backend_host_port }}/health"
 
   tasks:
@@ -18,8 +17,6 @@
         update_cache: true
         name:
           - nginx
-          - certbot
-          - python3-certbot-nginx
         state: present
 
     - name: Ensure nginx service is enabled and running
@@ -53,31 +50,11 @@
         path: "{{ app_dir }}/{{ env_file }}"
         mode: "0600"
 
-    - name: Check if TLS cert already exists
-      ansible.builtin.stat:
-        path: "{{ cert_fullchain_path }}"
-      register: cert_stat
-
-    - name: Ensure certbot webroot exists
-      ansible.builtin.file:
-        path: "{{ certbot_webroot }}"
-        state: directory
-        mode: "0755"
-
-    - name: Write bootstrap nginx config when cert is missing
+    - name: Write HTTP nginx config
       ansible.builtin.template:
         src: bootstrap-http.conf.j2
         dest: "{{ nginx_site_path }}"
         mode: "0644"
-      when: not cert_stat.stat.exists
-      notify: Reload nginx safely
-
-    - name: Write full TLS nginx config when cert exists
-      ansible.builtin.template:
-        src: tls-site.conf.j2
-        dest: "{{ nginx_site_path }}"
-        mode: "0644"
-      when: cert_stat.stat.exists
       notify: Reload nginx safely
 
     - name: Enable nginx site
@@ -92,38 +69,8 @@
         path: /etc/nginx/sites-enabled/default
         state: absent
 
-    - name: Flush nginx changes before cert issuance
+    - name: Flush nginx changes
       ansible.builtin.meta: flush_handlers
-      when: not cert_stat.stat.exists
-
-    # - name: Issue cert with certbot when missing
-    #   ansible.builtin.command: >
-    #     certbot certonly --webroot -w {{ certbot_webroot }}
-    #     -d {{ domain }} --non-interactive --agree-tos
-    #     --email {{ certbot_email }}
-    #   when: not cert_stat.stat.exists
-    #   changed_when: true
-
-    - name: Check if TLS cert exists after issuance
-      ansible.builtin.stat:
-        path: "{{ cert_fullchain_path }}"
-      register: cert_stat_after
-
-    - name: Write full TLS nginx config after cert issuance
-      ansible.builtin.template:
-        src: tls-site.conf.j2
-        dest: "{{ nginx_site_path }}"
-        mode: "0644"
-      when: cert_stat_after.stat.exists
-      notify: Reload nginx safely
-
-    - name: Flush nginx changes after cert tasks
-      ansible.builtin.meta: flush_handlers
-
-    - name: Certbot renew dry-run
-      ansible.builtin.command: certbot renew --dry-run
-      changed_when: false
-      failed_when: false
 
     - name: Install Docker Engine and Docker Compose v2 (Ubuntu)
       ansible.builtin.apt:
@@ -174,9 +121,45 @@
       changed_when: false
       failed_when: false
 
+    - name: Check active swap
+      ansible.builtin.command: swapon --noheadings --show=NAME
+      register: swap_status
+      changed_when: false
+      failed_when: false
+
+    - name: Ensure 1G swap file exists when no active swap
+      when: (swap_status.stdout | trim) == ""
+      block:
+        - name: Allocate swapfile
+          ansible.builtin.command: fallocate -l 1G /swapfile
+          args:
+            creates: /swapfile
+
+        - name: Set swapfile permissions
+          ansible.builtin.file:
+            path: /swapfile
+            owner: root
+            group: root
+            mode: "0600"
+
+        - name: Format swapfile
+          ansible.builtin.command: mkswap /swapfile
+          changed_when: true
+
+        - name: Enable swapfile
+          ansible.builtin.command: swapon /swapfile
+          changed_when: true
+
+        - name: Persist swapfile in fstab
+          ansible.builtin.lineinfile:
+            path: /etc/fstab
+            regexp: '^/swapfile\s'
+            line: '/swapfile none swap sw 0 0'
+            state: present
+
     - name: Build docker services
       become: true
-      ansible.builtin.command: docker compose --env-file "{{ env_file }}" build
+      ansible.builtin.command: env DOCKER_BUILDKIT=0 COMPOSE_DOCKER_CLI_BUILD=0 docker compose --env-file "{{ env_file }}" build
       args:
         chdir: "{{ app_dir }}"
 
@@ -192,6 +175,20 @@
       args:
         chdir: "{{ app_dir }}"
       changed_when: false
+
+    - name: Verify nginx proxies frontend root locally
+      become: false
+      ansible.builtin.uri:
+        url: "{{ nginx_root_url }}"
+        method: GET
+        status_code: 200
+
+    - name: Verify nginx proxies backend health locally
+      become: false
+      ansible.builtin.uri:
+        url: "{{ nginx_health_url }}"
+        method: GET
+        status_code: 200
 
     - name: App health check
       become: false
