@@ -69,6 +69,12 @@
         path: /etc/nginx/sites-enabled/default
         state: absent
 
+    - name: Assert Ubuntu default nginx site is not enabled
+      ansible.builtin.stat:
+        path: /etc/nginx/sites-enabled/default
+      register: nginx_default_site
+      failed_when: nginx_default_site.stat.exists | default(false)
+
     - name: Flush nginx changes
       ansible.builtin.meta: flush_handlers
 
@@ -176,6 +182,13 @@
         chdir: "{{ app_dir }}"
       changed_when: false
 
+    - name: App health check (backend directly)
+      become: false
+      ansible.builtin.uri:
+        url: "{{ web_health_url }}"
+        method: GET
+        status_code: 200
+
     - name: Verify nginx proxies frontend root locally
       become: false
       ansible.builtin.uri:
@@ -190,12 +203,14 @@
         method: GET
         status_code: 200
 
-    - name: App health check
+    - name: Verify nginx proxies lessons API prefix locally
       become: false
       ansible.builtin.uri:
-        url: "{{ web_health_url }}"
+        url: "http://127.0.0.1/lessons/000000000000000000000001"
         method: GET
-        status_code: 200
+        headers:
+          Accept: application/json
+        status_code: 404
 
   handlers:
     - name: Reload nginx safely
