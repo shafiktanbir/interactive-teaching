@@ -2,7 +2,7 @@
 
 ## Architecture
 
-- **Host nginx** (installed by Ansible): **HTTP only** on port 80 (suitable for access by VPS IP or hostname). Reverse proxy to loopback ports for the **frontend** (container nginx serving static assets) and **backend** (FastAPI) containers. No TLS or certbot on the host.
+- **Host nginx** (installed by Ansible): **HTTP only** on port 80 (suitable for access by VPS IP or hostname). Reverse proxy to loopback ports for the **frontend** (container nginx serving static assets) and **backend** (FastAPI) containers. No TLS or certbot on the host. The playbook removes **both** common stock defaults so port 80 is not served by the welcome page: Ubuntu’s `sites-enabled/default` symlink and, if present, `conf.d/default.conf` (some nginx packages ship a second default there). Both are removed idempotently (`state: absent`), then nginx is tested and reloaded.
 - **Docker Compose** (`docker-compose.yml` at repo root): `mongo`, `backend`, `frontend` on network `app_net`. Mongo is not exposed publicly; backend and frontend publish only on `127.0.0.1` ports defined in `.env.local`.
 
 ## GitHub Actions: Deploy VPS
@@ -32,6 +32,8 @@ ansible-playbook -i 'vps ansible_host=YOUR_HOST ansible_port=22 ansible_user=YOU
 ```
 
 Use SSH key with `-private-key` or `ansible_ssh_private_key_file` in inventory.
+
+If a run **fails after** configuration tasks but **before** the play ends, Ansible may skip running notified handlers (e.g. nginx reload). Re-running the playbook usually converges the machine. To force any pending handlers to run after a failure, use `ansible-playbook ... --force-handlers` or set `force_handlers = True` in `ansible.cfg`.
 
 ## Local Docker stack
 
