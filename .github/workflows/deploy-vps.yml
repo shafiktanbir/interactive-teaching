@@ -129,7 +129,7 @@ jobs:
           ansible-playbook -i /tmp/ansible_inventory.ini \
             "${GITHUB_WORKSPACE}/deploy/ansible/deploy-vps.yml" \
             --private-key ~/.ssh/vps_deploy_key \
-            --ssh-common-args='-o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts' \
+            --ssh-common-args='-o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts -o ConnectTimeout=30 -o ConnectionAttempts=5 -o ServerAliveInterval=30 -o ServerAliveCountMax=6' \
             --extra-vars "app_dir=${VPS_APP_DIR}"
 
       - name: Remove temporary SSH key

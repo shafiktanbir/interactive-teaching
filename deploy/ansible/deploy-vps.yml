@@ -144,8 +144,9 @@
         groups: docker
         append: true
 
-    - name: Reset SSH connection so docker group applies
-      ansible.builtin.meta: reset_connection
+    # Avoid forced reconnect in CI; docker commands below run with become.
+    # - name: Reset SSH connection so docker group applies
+    #   ansible.builtin.meta: reset_connection
 
     - name: Check docker compose file present (deploy bundle from CI)
       become: false
@@ -159,14 +160,14 @@
       when: not compose_file_stat.stat.exists
 
     - name: Validate docker compose config
-      become: false
+      become: true
       ansible.builtin.command: docker compose --env-file "{{ env_file }}" config
       args:
         chdir: "{{ app_dir }}"
       changed_when: false
 
     - name: Pull docker images (best effort)
-      become: false
+      become: true
       ansible.builtin.command: docker compose --env-file "{{ env_file }}" pull
       args:
         chdir: "{{ app_dir }}"
@@ -174,19 +175,19 @@
       failed_when: false
 
     - name: Build docker services
-      become: false
+      become: true
       ansible.builtin.command: docker compose --env-file "{{ env_file }}" build
       args:
         chdir: "{{ app_dir }}"
 
     - name: Run docker stack
-      become: false
+      become: true
       ansible.builtin.command: docker compose --env-file "{{ env_file }}" up -d --remove-orphans
       args:
         chdir: "{{ app_dir }}"
 
     - name: Show compose services status
-      become: false
+      become: true
       ansible.builtin.command: docker compose --env-file "{{ env_file }}" ps
       args:
         chdir: "{{ app_dir }}"
