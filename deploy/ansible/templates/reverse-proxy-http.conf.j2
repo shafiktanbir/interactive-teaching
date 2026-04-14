@@ -32,6 +32,17 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
+    # Route browser-facing API path directly to backend on host loopback.
+    # This avoids a fragile double proxy chain (host nginx -> frontend nginx -> backend).
+    location /api/ {
+        proxy_pass http://127.0.0.1:{{ backend_host_port }}/;
+        proxy_http_version 1.1;q
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
     location / {
         proxy_pass http://127.0.0.1:{{ frontend_host_port }};
         proxy_http_version 1.1;
