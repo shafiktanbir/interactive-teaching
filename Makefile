@@ -8,7 +8,7 @@ FRONTEND_DIR := frontend
 BACKEND_PORT ?= 8000
 FRONTEND_PORT ?= 5173
 
-.PHONY: help mongo mongo-down install install-backend install-frontend setup-env backend frontend dev test clean
+.PHONY: help mongo mongo-down install install-backend install-frontend setup-env seed backend frontend dev test clean
 
 help:
 	@echo "Interactive Teaching — Makefile"
@@ -21,9 +21,10 @@ help:
 	@echo "  make backend        Run FastAPI (uvicorn) on :$(BACKEND_PORT)"
 	@echo "  make frontend       Run Vite dev server on :$(FRONTEND_PORT)"
 	@echo "  make dev            Run backend + frontend in parallel (needs two terminals' worth — one make)"
+	@echo "  make seed           Seed demo lesson + nodes into MongoDB (needs mongo; idempotent if empty)"
 	@echo "  make test           pytest (backend) + frontend build (typecheck)"
 	@echo ""
-	@echo "First time:  make mongo && make setup-env && make install && make dev"
+	@echo "First time:  make mongo && make setup-env && make install && make seed && make dev"
 
 # Prefer .env.local (deploy convention); fall back to project `.env` for Compose interpolation.
 COMPOSE_ENV_FILE := $(shell test -f .env.local && echo .env.local || echo .env)
@@ -48,6 +49,9 @@ install-frontend:
 	cd $(FRONTEND_DIR) && npm install
 
 install: install-backend install-frontend
+
+seed: $(BACKEND_DIR)/.venv/bin/uvicorn
+	cd $(BACKEND_DIR) && . .venv/bin/activate && python -m app.seed
 
 # Ensure venv + deps exist (lightweight check)
 $(BACKEND_DIR)/.venv/bin/uvicorn:

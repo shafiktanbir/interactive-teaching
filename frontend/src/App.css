@@ -298,6 +298,14 @@ body {
   color: #b91c1c;
 }
 
+.lesson-load-error-detail {
+  margin-top: 0.75rem;
+  font-size: 0.8125rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #6b7280;
+}
+
 .modal-panel--wide {
   max-width: min(900px, 100%);
   max-height: min(90vh, 900px);

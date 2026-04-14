@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
 from bson import ObjectId
-from motor.motor_asyncio import AsyncIOMotorDatabase
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
 # Deterministic ids for docs and API
 N_TEXT = ObjectId("507f1f77bcf86cd799439011")
@@ -370,3 +370,24 @@ async def seed_if_empty(db: AsyncIOMotorDatabase) -> None:
                 copy = {**row, "body": id_to_body.get(str(rid), bodies["intro"])}
                 patched.append(copy)
             await lessons.update_one({"_id": LESSON_ID}, {"$set": {"toc": patched}})
+
+
+async def _run_seed_cli() -> None:
+    from app.config import get_settings
+
+    settings = get_settings()
+    client = AsyncIOMotorClient(settings.mongodb_uri)
+    try:
+        await seed_if_empty(client[settings.database_name])
+    finally:
+        client.close()
+
+
+def main() -> None:
+    import asyncio
+
+    asyncio.run(_run_seed_cli())
+
+
+if __name__ == "__main__":
+    main()
